@@ -32,7 +32,7 @@ class CrossEncoderReranker:
 
     def _cross_score(self, query: str, text: str) -> float:
         """Computes cross-attention-like score between query and document text."""
-        q_tokens = [w.lower() for w in re.findall(r"\b\w{2,}\b", query)]
+        q_tokens = list(dict.fromkeys(w.lower() for w in re.findall(r"\b\w{2,}\b", query)))
         if not q_tokens:
             return 0.0
 
@@ -52,7 +52,8 @@ class CrossEncoderReranker:
                 phrase_boost = 0.25
 
         # 3. Density of matches (window compactness)
-        match_indices = [i for i, t in enumerate(t_tokens) if t in matched_terms]
+        matched_set = set(matched_terms)
+        match_indices = [i for i, t in enumerate(t_tokens) if t in matched_set]
         density_score = 0.0
         if len(match_indices) >= 2:
             span = match_indices[-1] - match_indices[0] + 1

@@ -14,9 +14,7 @@ class MetadataExtractor:
     ]
 
     SECTION_PATTERNS = [
-        re.compile(r"^(\d+\.\d+)\s+([A-Z][A-Za-z0-9\s,\-:]{2,60})$"),
-        re.compile(r"^(\d+\.\d+\.\d+)\s+([A-Z][A-Za-z0-9\s,\-:]{2,60})$"),
-        re.compile(r"^[A-Z][A-Za-z0-9\s]{3,40}:?$"),
+        re.compile(r"^(\d+(?:\.\d+){1,2})\s+([A-Z].{2,100})$"),
     ]
 
     HEADER_FOOTER_PATTERNS = [
@@ -45,11 +43,24 @@ class MetadataExtractor:
     def detect_section(self, text_lines: List[str]) -> Optional[str]:
         """Detects prominent section headings on the page."""
         sample_lines = [l.strip() for l in text_lines if l.strip()]
+        # Prefer numbered headings anywhere near the top; ordinary prose often
+        # matches broad title-like expressions and must not become metadata.
         for line in sample_lines:
             for pattern in self.SECTION_PATTERNS:
                 match = pattern.match(line)
                 if match:
                     return line
+
+        # Conservative fallback for unnumbered headings. Avoid page labels,
+        # chapter labels, and sentence-like lines so they do not pollute citations.
+        for line in sample_lines[:12]:
+            if re.match(r"^(?:page|chapter|part)\b", line, re.IGNORECASE):
+                continue
+            if line.endswith((".", "!", "?")) or len(line) > 85:
+                continue
+            words = line.split()
+            if 2 <= len(words) <= 10 and sum(word[:1].isupper() for word in words) >= 2:
+                return line
         return None
 
     def clean_page_lines(self, lines: List[str], page_number: int) -> List[str]:

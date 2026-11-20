@@ -31,9 +31,15 @@ class BM25Index:
 
     def fit(self, chunks: List[DocumentMetadata]):
         """Builds BM25 inverted index from document chunks."""
-        self.doc_metadata = chunks
+        # Replace the complete index, including when the new corpus is empty.
+        self.doc_metadata = list(chunks)
         self.corpus_size = len(chunks)
+        self.avgdl = 0.0
+        self.doc_lengths = []
+        self.doc_term_freqs = []
+        self.idf = {}
         if self.corpus_size == 0:
+            self.save()
             return
 
         self.doc_lengths = []
@@ -120,7 +126,8 @@ class BM25Index:
         if self.corpus_size == 0:
             return []
 
-        query_tokens = self._tokenize(query)
+        # Repeated query words should not multiply the same BM25 contribution.
+        query_tokens = list(dict.fromkeys(self._tokenize(query)))
         if not query_tokens:
             return []
 

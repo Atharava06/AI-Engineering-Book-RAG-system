@@ -85,17 +85,25 @@ class AIEngineeringRAGPipeline:
         citations: List[Citation] = []
         seen = set()
         for c in chunks:
-            key = (c.chapter, c.page_number)
+            section = c.section.strip() if c.section else ""
+            if not section or re.fullmatch(r"(?:page\s*)?\d+", section, re.IGNORECASE):
+                heading = re.search(r"(?m)^\s*(\d+(?:\.\d+)+\s+[^\n]{3,100})\s*$", c.text)
+                section = heading.group(1).strip() if heading else "Section heading not identified"
+
+            key = (c.chapter, section, c.page_number)
             if key in seen:
                 continue
             seen.add(key)
 
-            snippet = c.text[:200].replace("\n", " ") + "..."
+            snippet_text = re.sub(r"^\[[^\]]+\]\s*", "", c.text.strip())
+            snippet = snippet_text[:200].replace("\n", " ")
+            if len(snippet_text) > 200:
+                snippet += "..."
             citations.append(
                 Citation(
                     book_name=c.book_name,
                     chapter=c.chapter,
-                    section=c.section,
+                    section=section,
                     page_number=c.page_number,
                     source_file=c.source_file,
                     snippet=snippet,
@@ -139,7 +147,7 @@ class AIEngineeringRAGPipeline:
         answer_text = self.llm_service.generate(
             prompt=prompt,
             system_instruction=SYSTEM_PROMPT,
-            temperature=req.temperature or 0.1,
+            temperature=0.1 if req.temperature is None else req.temperature,
         )
 
         parsed_parts = self._parse_answer_sections(answer_text)

@@ -27,6 +27,7 @@ from backend.schemas import (
     EvaluateRequest,
 )
 from backend.utils.helpers import create_sample_ai_engineering_pdf
+from backend.generation.llm_service import get_llm_service
 from frontend.components.sidebar import render_sidebar
 from frontend.components.chat_view import render_chat_interface
 from frontend.components.source_card import render_citation_card, render_retrieved_chunk_card
@@ -320,24 +321,57 @@ elif page == "⚙️ Settings":
     st.markdown("### ⚙️ System & Model Configuration")
     st.caption("Adjust LLM providers, embedding backends, vector store parameters, and retrieval hyperparameters.")
 
+    active_llm = rag_pipeline.llm_service
+    if getattr(active_llm, "api_key", None):
+        st.success(f"LLM active: {active_llm.model} via {settings.LLM_PROVIDER}")
+    else:
+        st.warning("LLM API key is not loaded. The app is using its offline fallback generator.")
+
     col1, col2 = st.columns(2)
 
     with col1:
         st.markdown("#### LLM Provider Configuration")
+        provider_options = ["gemini", "groq", "openai", "ollama", "mock"]
+        provider_labels = {
+            "gemini": "Google Gemini",
+            "groq": "Groq",
+            "openai": "OpenAI",
+            "ollama": "Ollama (local)",
+            "mock": "Offline fallback",
+        }
         provider = st.selectbox(
             "LLM Provider",
-            ["gemini", "openai", "ollama", "mock"],
-            index=["gemini", "openai", "ollama", "mock"].index(settings.LLM_PROVIDER)
-            if settings.LLM_PROVIDER in ["gemini", "openai", "ollama", "mock"]
+            provider_options,
+            format_func=lambda value: provider_labels[value],
+            index=provider_options.index(settings.LLM_PROVIDER)
+            if settings.LLM_PROVIDER in provider_options
             else 0,
         )
-        model_name = st.text_input("LLM Model Name", value=settings.LLM_MODEL)
-        api_key = st.text_input(
-            "API Key (Stored only in local session)",
-            type="password",
-            value=settings.LLM_API_KEY or "",
-            placeholder="Enter API Key or set in .env",
+        provider_models = {
+            "gemini": "gemini-3.8-flash",
+            "groq": "openai/gpt-oss-120b",
+        }
+        model_default = settings.LLM_MODEL if provider == settings.LLM_PROVIDER else provider_models.get(provider, settings.LLM_MODEL)
+        model_name = st.text_input(
+            "LLM Model Name",
+            value=model_default,
+            key=f"llm_model_name_{provider}",
         )
+        if provider == "groq":
+            key_default = settings.GROQ_API_KEY
+        elif provider == settings.LLM_PROVIDER:
+            key_default = settings.LLM_API_KEY
+        else:
+            key_default = ""
+        api_key = st.text_input(
+            f"{provider_labels[provider]} API Key (stored only in this app session)",
+            type="password",
+            value=key_default or "",
+            key=f"llm_api_key_{provider}",
+            placeholder="Paste your provider API key",
+        )
+        if provider == "groq":
+            st.markdown("Get a Groq key from the [Groq Console](https://console.groq.com/keys).")
         temperature = st.slider("Generation Temperature", min_value=0.0, max_value=1.0, value=settings.LLM_TEMPERATURE, step=0.05)
 
     with col2:
@@ -350,10 +384,23 @@ elif page == "⚙️ Settings":
     if st.button("💾 Apply Settings"):
         settings.LLM_PROVIDER = provider
         settings.LLM_MODEL = model_name
-        if api_key:
-            settings.LLM_API_KEY = api_key
+        settings.LLM_API_KEY = api_key.strip() or None
+        provider_base_urls = {
+            "groq": "https://api.groq.com/openai/v1",
+            "openai": "https://api.openai.com/v1",
+        }
+        if provider in provider_base_urls:
+            settings.LLM_BASE_URL = provider_base_urls[provider]
         settings.LLM_TEMPERATURE = temperature
         settings.CHUNK_SIZE = chunk_size
         settings.CHUNK_OVERLAP = chunk_overlap
         settings.FINAL_TOP_K = top_k_final
-        st.success("Settings updated successfully!")
+        rag_pipeline.llm_service = get_llm_service(
+            provider=provider,
+            api_key=settings.LLM_API_KEY,
+            model=model_name,
+        )
+        if getattr(rag_pipeline.llm_service, "api_key", None):
+            st.success(f"Settings applied. Active LLM: {model_name}.")
+        else:
+            st.warning("Settings applied, but no API key is configured. The offline fallback remains active.")

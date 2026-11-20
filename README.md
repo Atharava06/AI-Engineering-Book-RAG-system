@@ -1,6 +1,6 @@
 # 📘 AI Engineering Book — Advanced Hybrid RAG System
 
-A production-grade, end-to-end Retrieval-Augmented Generation (RAG) system built for the 991-page digital book **"AI Engineering"**.
+An end-to-end Retrieval-Augmented Generation (RAG) system built for the digital book **"AI Engineering"**.
 
 This application preserves the original book's structure and knowledge, featuring structure-aware chunking, dense + lexical hybrid retrieval with Reciprocal Rank Fusion (RRF), cross-encoder reranking, and hallucination-free answer generation with verifiable physical PDF page citations.
 
@@ -11,7 +11,7 @@ This application preserves the original book's structure and knowledge, featurin
 1. **Grounded Question Answering**: Conversational assistant strictly adhering to retrieved book content, citing chapter, section, and original physical PDF page numbers.
 2. **Structure-Aware Ingestion & Chunking**: Preserves chapter headings, code blocks, and markdown tables. Respects sentence boundaries and avoids naive fixed-character truncation.
 3. **Multi-Stage Hybrid Retrieval**:
-   - **Dense Vector Search**: High-dimensional semantic embeddings stored in **Qdrant**.
+   - **Dense Vector Search**: Configurable embeddings stored in **Qdrant**. The default `local_fast` provider uses lightweight word unigram/bigram feature hashing; use a trained embedding provider such as BGE-M3 for semantic similarity.
    - **Sparse Lexical Search**: **BM25Okapi** keyword index for exact technical terminology and identifiers.
    - **Reciprocal Rank Fusion (RRF)**: Rank aggregation combining dense and sparse candidates with \( k = 60 \).
    - **Cross-Encoder Reranking**: Second-stage fine-grained cross-scoring of top fused candidates.
@@ -138,13 +138,20 @@ Copy `.env.example` to `.env`:
 cp .env.example .env
 ```
 
-Configure your preferred LLM in `.env`:
+The app loads `.env`; `.env.example` is only a template. Put your real API key in `.env` and keep the example key as a placeholder.
+
+The template defaults to Groq. Configure your preferred LLM in `.env`:
 ```ini
-# For Google Gemini (via OpenAI-compatible endpoint)
-LLM_PROVIDER=gemini
-LLM_MODEL=gemini-2.5-flash
-LLM_API_KEY=your_gemini_api_key_here
-LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+# Groq
+LLM_PROVIDER=groq
+LLM_MODEL=openai/gpt-oss-120b
+GROQ_API_KEY=your_groq_api_key_here
+LLM_BASE_URL=https://api.groq.com/openai/v1
+
+# Google Gemini alternative (native Interactions API)
+# LLM_PROVIDER=gemini
+# LLM_MODEL=gemini-3.8-flash
+# LLM_API_KEY=your_gemini_api_key_here
 
 # For OpenAI
 # LLM_PROVIDER=openai

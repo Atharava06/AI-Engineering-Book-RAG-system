@@ -26,10 +26,11 @@ class Settings(BaseSettings):
     QDRANT_COLLECTION: str = "ai_engineering_book"
 
     # LLM Settings
-    LLM_PROVIDER: str = "gemini"  # "gemini", "openai", "ollama", "mock"
-    LLM_MODEL: str = "gemini-2.5-flash"
+    LLM_PROVIDER: str = "gemini"  # "gemini", "groq", "openai", "ollama", "mock"
+    LLM_MODEL: str = "gemini-3.8-flash"
     LLM_API_KEY: Optional[str] = None
-    LLM_BASE_URL: Optional[str] = "https://generativelanguage.googleapis.com/v1beta/openai/"
+    GROQ_API_KEY: Optional[str] = None
+    LLM_BASE_URL: Optional[str] = "https://api.openai.com/v1"
     LLM_TEMPERATURE: float = 0.1
     LLM_MAX_TOKENS: int = 2048
 

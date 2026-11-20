@@ -30,9 +30,9 @@ class BaseEmbeddingService(abc.ABC):
 
 
 class LocalFastEmbeddingService(BaseEmbeddingService):
-    """Deterministic, high-performance local dense semantic embedding model.
-    Produces L2-normalized 384-dimensional dense vectors using character and word
-    n-gram hashing projections. Requires zero external API calls or GPU/Torch dependencies.
+    """Deterministic local feature-hashing baseline for dense retrieval.
+    Produces L2-normalized vectors from word unigrams and bigrams. This is fast
+    and dependency-free, but is not a trained semantic embedding model.
     """
 
     def __init__(self, dimension: int = 384):

@@ -85,6 +85,17 @@ class QdrantVectorStore:
                 pass
         return len(self._fallback_points)
 
+    def clear(self) -> None:
+        """Remove all indexed points while keeping the collection available."""
+        if self.client:
+            try:
+                self.client.delete_collection(collection_name=self.collection_name)
+                self._ensure_collection()
+                return
+            except Exception as e:
+                raise RuntimeError(f"Could not clear Qdrant collection {self.collection_name}: {e}") from e
+        self._fallback_points.clear()
+
     def close(self):
         """Safely close client connection."""
         if self.client:
