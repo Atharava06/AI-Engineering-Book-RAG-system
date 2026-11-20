@@ -183,6 +183,14 @@ Interactive Swagger API documentation is available at `http://localhost:8000/doc
 
 ---
 
+## Sample Output
+
+Example response to **"What is Chunking, explain its type?"** in the Streamlit chat interface:
+
+![AI Engineering RAG answer explaining chunking types](assets/sample-chunking-answer.png)
+
+---
+
 ## 📚 Document Ingestion
 
 1. Navigate to **📂 Document Management** in the Streamlit UI.
